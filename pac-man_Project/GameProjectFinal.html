@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body{margin: 0px;}
+        h1{
+            margin-top: 0px;
+            text-align: center;
+        }
+
+        #Info_area{
+            width: 1000px;
+            height: 50px;
+            background-color: rgb(163, 142, 142);
+            /* f를 입력했더니 rgb가 뜨고, "red"를 쳤을때는
+            발생하던 문제가 rgb로 해결됨 */
+            margin: auto;
+        }
+        #hp_area{
+            width:400px;
+            height: 100%;
+            float:left;
+            position: relative;
+            /* text-align: center; img가 div안에 있을 때만 사용가능*/ 
+        }
+        #start_bt{
+            width: 200px;
+            height: 50px;
+            font-size: 30px;
+            border: 2px solid rgb(153, 134, 27);
+            margin: auto;
+            float: left;
+        }
+        #score_area{
+            width:400px;
+            height: 100%;
+            float:right;
+        }
+        #stage{
+            width: 100%;
+            height: 100vh;
+            background: linear-gradient(rgb(160, 160, 88), rgb(0, 0, 0), rgb(119, 67, 119));
+        }
+    </style>
+    <!--GameObject가 가장 위에 있어야 Food도 읽힐 수 있다.-->
+    <script src="./src/GameObject.js"></script>
+    <script src="./src/ChangeRoadRange.js"></script>
+    <script src="./src/Hero.js"></script>
+    <script src="./src/Tile.js"></script>
+    <script src="./src/Enemy.js"></script>
+    <script src="./src/Food.js"></script>
+    <script src="../lib/util.js"></script>
+    <script>
+        let wrapper;
+        let flag=false; //새로고침했을 때 시작하지 말아야 함.
+        let map_Width=50;
+        let map_height=50;
+        let ImageNameArray=["spacewall.jpg","pacman.png","special_food.png"];
+        let ghostNameArray=["ghost_red.png","ghost_blue.png","ghost_yellow.png","ghost_green.png"];
+        let hero, tile, food;
+        let Speed=6;
+        let enemySpeed=7;
+        let tileArray=[]; //벽들을 모아둔 배열 총 116개
+        let foodArray=[];
+        let hpArray=[];
+        const resolveError=1;
+        let num=2;
+        let enemy1, enemy2, enemy3, enemy4;
+        let enemyArray=[];
+        let interchange1;
+        // let array4function; 보이지 않는벽4번 전역으로 빼주기
+        //움직일 방향의 센서들의 모임, 다시말하면 충돌이 나지 않은 방향들을 모아 두어
+        //해당 방향으로 움직이게 하려고 한다.
+        // let array4functionArray=[]; 실시간으로 벽테스트를 가능하게 하려는 이유 때문에 만들어 주었다.
+        let mapArray=[ //day1026게임 만들기 참고
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,1],
+            [1,2,1,1,1,1,1,2,1,1,1,2,1,1,1,1,1,1,2,1],
+            [1,2,1,2,2,2,2,2,1,2,1,2,2,2,2,2,2,1,2,1],
+            [1,2,1,2,1,1,1,2,1,2,1,2,1,1,2,1,2,1,2,1],
+            [0,2,2,2,1,2,2,2,1,3,1,2,2,2,2,1,2,2,2,0],
+            [1,2,1,2,1,1,1,2,1,2,1,1,1,1,1,1,2,1,2,1],
+            [1,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,1],
+            [1,2,1,1,1,1,1,2,1,1,1,2,1,1,1,1,1,1,2,1],
+            [1,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,3,1],
+            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+        ];
+        
+
+        function start(){
+            flag=true;//이거 좀 이상해
+            gameLoop();
+            document.getElementById("start_bt").style.display="none";
+        }
+
+        function createWrapper(){
+            wrapper.style.position="relative";
+            wrapper.style.margin="auto";
+            wrapper.style.background="rgb(100, 95, 95)";
+            wrapper.style.width=map_Width*mapArray[0].length+"px";
+            wrapper.style.height=map_height*mapArray.length+"px";
+        }
+        // constructor(container, x, y, width, height, velX, velY, src)
+        function createMap(){
+            for(let i=0; i<mapArray.length; i++){
+                
+                for(let a=0; a<mapArray[i].length; a++){
+                    if(mapArray[i][a]==1){
+                        //오해의 소지가 있어 img를 tile로 바꿔줌
+                        tile=new Tile(wrapper, (a*map_Width), (i*map_height), map_Width, map_height, 0, 0, "spacewall.jpg")
+                        tileArray.push(tile);
+                    }
+                    if(mapArray[i][a]==2){
+                        //constructor(container, x, y, width, height, velX, velY, src)
+                        food=new Food(wrapper, (a*map_Width+10), (i*map_height+10), (map_Width-20), (map_height-20), 0, 0, "ball.png")
+                        foodArray.push(food);
+                    }
+                    if(mapArray[i][a]==3){
+                        //constructor(container, x, y, width, height, velX, velY, src)
+                        food=new Food(wrapper, (a*map_Width+10), (i*map_height+10), (map_Width-10), (map_height-10), 0, 0, "special_food.png")
+                        foodArray.push(food);
+
+                    }
+                    
+                }
+            }
+        }
+
+        
+        function createEnemy(){ //적군을 만드는 곳
+            //constructor(container, x, y, width, height, velX, velY, src)
+            enemy1= new Enemy(wrapper, (550+1), (50+1), map_Width-4, map_height-4, enemySpeed, 0, ghostNameArray[0]);
+            //적군의 크기가 벽돌크기와 같으면 계속하여 충돌하기 때문에 호출되는 순서대로 막 움직이게 된다.
+            enemy2= new Enemy(wrapper, (250+1), (150+1), map_Width-4, map_height-4, enemySpeed, 0, ghostNameArray[1]);
+            enemy3= new Enemy(wrapper, (450+1), (150+1), map_Width-4, map_height-4, 0, enemySpeed, ghostNameArray[2]);
+            enemy4= new Enemy(wrapper, (450+1), (350+1), map_Width-4, map_height-4, 0, enemySpeed, ghostNameArray[3]);
+
+            enemyArray.push(enemy1, enemy2, enemy3, enemy4);
+        }
+        
+        function createChangeRoad(){
+            // constructor(container, color, x, y, width, height)
+            interchange1=new ChangeRoadRange(wrapper, "rgb(160, 160, 88, 0.222)", (map_Width*7), (map_height*1), map_Width-1, map_height-1);
+            interchange2=new ChangeRoadRange(wrapper, "rgb(160, 160, 88, 0.222)", (map_Width*11), (map_height*1), map_Width-1, map_height-1);
+            interchange3=new ChangeRoadRange(wrapper, "rgb(160, 160, 88, 0.222)", (map_Width*7), (map_height*3), map_Width-1, map_height-1);
+            interchange4=new ChangeRoadRange(wrapper, "rgb(160, 160, 88, 0.222)", (map_Width*11), (map_height*3), map_Width-1, map_height-1);
+            interchange5=new ChangeRoadRange(wrapper, "rgb(160, 160, 88, 0.222)", (map_Width*14), (map_height*3), map_Width-1, map_height-1);
+            interchange6=new ChangeRoadRange(wrapper, "rgb(160, 160, 88, 0.222)", (map_Width*1), (map_height*5), map_Width-1, map_height-1);
+            interchange7=new ChangeRoadRange(wrapper, "rgb(160, 160, 88, 0.222)", (map_Width*3), (map_height*5), map_Width-1, map_height-1);
+            interchange8=new ChangeRoadRange(wrapper, "rgb(160, 160, 88, 0.222)", (map_Width*7), (map_height*5), map_Width-1, map_height-1);
+            interchange9=new ChangeRoadRange(wrapper, "rgb(160, 160, 88, 0.222)", (map_Width*16), (map_height*5), map_Width-1, map_height-1);
+            interchange10=new ChangeRoadRange(wrapper, "rgb(160, 160, 88, 0.222)", (map_Width*18), (map_height*5), map_Width-1, map_height-1);
+            interchange11=new ChangeRoadRange(wrapper, "rgb(160, 160, 88, 0.222)", (map_Width*7), (map_height*7), map_Width-1, map_height-1);
+            interchange12=new ChangeRoadRange(wrapper, "rgb(160, 160, 88, 0.222)", (map_Width*9), (map_height*7), map_Width-1, map_height-1);
+            interchange13=new ChangeRoadRange(wrapper, "rgb(160, 160, 88, 0.222)", (map_Width*11), (map_height*7), map_Width-1, map_height-1);
+            interchange14=new ChangeRoadRange(wrapper, "rgb(160, 160, 88, 0.222)", (map_Width*7), (map_height*9), map_Width-1, map_height-1);
+            interchange15=new ChangeRoadRange(wrapper, "rgb(160, 160, 88, 0.222)", (map_Width*11), (map_height*9), map_Width-1, map_height-1);
+
+        }
+
+
+        function createHp(){
+            for(let i=0; i<3; i++){
+                let hp_area=document.getElementById("hp_area");
+                let hp=document.createElement("img");
+                hp.src="./images/Hp.png";
+                hp.style.width=50+"px";
+                hp.style.height=50+"px";
+                hp.style.position="absolute";
+                hp.style.left=i*50+"px";
+
+                hpArray.push(hp); //hp3개를 동적으로 조작하기 위해 hpArray배열에 넣음.
+                hp_area.appendChild(hp);
+            }
+        }
+
+        function moveX(Spd){//팩맨이 좌우키보드입력에따라 움직이는 함수
+            if(event.keyCode==37){
+                hero.img.style.transform="scaleX(-1)";
+                //좌우 반전하는 css문법 적용하였음.
+                //scaleX(1): x축을 기준으로 원본
+                //scaleX(-1): x축을 기준으로 좌우반전
+            } else if(event.keyCode==39){
+                hero.img.style.transform="scaleX(1)";
+            }
+            //이렇게 하니까 된다아아아!!!!!
+            hero.velX=Spd; 
+            //hero.x+=Spd; 가 되면 왜 안될까? 이렇게
+            //했을 때 키보드로 움직여준 뒤 콘솔창에 보면 화면이 움직이는건
+            //아직 실행을 안시켜주었기 때문에hero는 안 움직이는 건 알지만
+            //hero.move()실행했을 때 왜 undefined가 뜨는 걸까??
+        }
+
+        function moveY(Spd){ //팩맨이 상하키보느 입력에따라 움직이는 함수
+            if(event.keyCode==38){
+                hero.img.style.transform="rotate(-90deg)";
+            } else if(event.keyCode==40){
+                hero.img.style.transform="rotate(90deg)";
+            }
+            hero.velY=Spd;
+        } 
+
+        
+
+        //계속 게임내부에서 자동적으로 돌아주어야 하는 부분!
+        //많이보고 이해하기
+        function gameLoop(){ 
+
+            hero.tick();
+            // hero.removeFood();
+            hero.render();
+            food.tick();
+            
+            interchange1.changeRoad();            
+            
+            enemy1.tick();
+            enemy1.render();
+            enemy2.tick();
+            enemy2.render();
+            enemy3.tick();
+            enemy3.render();
+            enemy4.tick();
+            enemy4.render();
+
+            
+            let clearGame=setTimeout("gameLoop()",50);
+            
+            if(foodArray.length==0){ 
+                //gameloop안에서 clearTimeout을 하려면 setTimeout의 식별자를 받아서 써주어야 함.
+                alert("you are the winner");
+                let reloadGame=confirm("축하합니다 \n 게임을 다시 하시겠습니까?");
+                if(reloadGame){
+                    clearTimeout(clearGame);
+                    document.location.reload();
+                }else{
+                    clearTimeout(clearGame);
+                }
+                // console.log("당신은 사랑받기 위해 태어난 사람");
+            }
+        }
+
+        // function runGame(){
+        //    document.getElementById("newGame").style.display="none";
+        //    document.getElementById("theHead").style.display="none";
+        //    document.getElementById("instruction_bt").style.display="none";
+        //    document.getElementById("instructions").style.display="none";
+        //    document.getElementById("back_bt").style.display="none";
+        //    document.getElementById("stage").style.display="block";
+           
+        // }
+
+      
+        function init(){
+
+            wrapper=document.getElementById("wrapper");
+            //constructor(container, x, y, width, height, velX, velY, src)
+            hero=new Hero(wrapper, 0, 255, 30, 30, 0, 0, "pacman.png");
+            
+
+            createWrapper();
+            createMap();
+            createEnemy();
+            createChangeRoad(); //교차로에서 적군의 움직임을 통제할 장치를 만드는 곳
+            createHp();
+            // constructor(container, x, y, width, height, velX, velY, src)
+            //팩맨을 키보드로 움직이게 하려면?
+            if(flag){
+                gameLoop();
+            }
+            
+            document.body.addEventListener("keydown",function(e){
+                switch(e.keyCode){
+                    //hero가 대각선이 되는 일이 없도록 moveX가 활성화되면
+                    //moveY가 비활성화 되는 식으로 코드를 짬.
+                    case 37: moveX(-Speed), moveY(0); break; 
+                    // transform: scaleX(-1);왼쪽누르면 왼쪽보고
+                    //오른쪽누르면 오른쪽 보기
+                    case 38: moveY(-Speed), moveX(0); break;
+                    case 39: moveX(Speed), moveY(0); break;
+                    case 40: moveY(Speed), moveX(0); break;
+                    
+                }
+            })
+        }
+        window.addEventListener("load", function(){
+                init();
+        });
+    
+    </script>
+</head>
+<body>
+    <!--
+    <div id="theHead">Welcome to Pac-Man</div>
+    <div id="new Game" onclick="runGame()" onmouseover="this.style.background = 'goldenrod'" onmouseout="this.style.background = 'gold'">게임 시작</div>
+    runGame(), showInstruction(),goback() 정의 하기
+    <div id="instruction_bt" onclick="showInstruction()" onmouseover="this.style.background='goldenrod'" onmouseout="this.style.background='gold'">게임설명</div>
+    <div id="instructions">
+        <h2>게임설명:</h2>
+        <br>유령을 피해 먹이를 모두 먹으면 이기는 게임입니다.
+        <br>먹이를 먹을 때마다 10점씩 올라가고,
+        <br>적군과 닿을시 hp가 1개 감소합니다.
+        <br>hp가 0개가 되면 GameOver가 됩니다.
+    </div>
+    <div id="back_bt" onclick="goback()" onmouseover="this.style.backgroundColor='goldenrod'" onmouseout="this.style.backgroundColor='gold'">뒤로</div>
+    -->
+    <div id="stage">
+        <h1>Pac-Man</h1>
+        <div id="Info_area">
+            <div id="hp_area"></div>
+            <button id="start_bt" onclick="start()" onmouseover="this.style.background='goldenrod'" onmouseout="this.style.background='gold'">Start</button>
+            <div id="score_area"></div>
+        </div>
+        <div id="wrapper">
+        </div>
+        
+    </div>
+</body>
+</html>
