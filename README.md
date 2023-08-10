@@ -10,7 +10,9 @@
 4. javascript 클래스 분리 구현 
 
 ### 🤖기술스택
-html, css, javascript
+- html : 전체적 구조 구현
+- css : 팩맨등 전체적 디자인 구현
+- javascript : 클래스 사용으로 객체 구현
 
 ### 🤖시연화면
 ![GIFMaker_me (1)](https://github.com/lukejihwan/pac-man-project/assets/111648451/f60e8945-c865-4f29-a00a-5b3d0de1539c)
